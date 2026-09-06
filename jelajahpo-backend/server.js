@@ -5,6 +5,7 @@ const mysql = require('mysql2');
 const PORT = 5000;
 const bcrypt = require('bcrypt');
 const saltRounds = 10;
+const jwt = require('jsonwebtoken');
 
 app.use(cors());
 app.use(express.json());
@@ -26,6 +27,38 @@ db.connect(err => {
 
 app.get('/', (req, res) => {
     res.send('Selamat Datang di JelajahPo API! ')
+});
+
+app.post('/login', (req, res) => {
+    const { email, password } = req.body;
+    const sql = 'SELECT * FROM pengguna WHERE email = ?';
+
+    db.query(sql, [email], (err,result) => {
+        if (err) return res.status(500).json({ error: err.sqlMessage});
+        if (result.length === 0) {
+            return res.status(404).json({ message: 'Akun tidak ditemukan'});
+        }
+
+        const user = result[0];
+        const passwordIsValid = bcrypt.compareSync(password, user.password);
+
+        if (!passwordIsValid) {
+            return res.status(401).json({ message: 'Password salah'});
+        }
+
+        const token = jwt.sign(
+            { id: user.id_pengguna },
+            'jelajahporahasia',
+            { expiresIn: 86400 }
+        );
+
+        res.status(200).json({
+            auth: true,
+            token,
+            id_pengguna: user.id_pengguna,
+            nama: user.nama
+        });
+    });
 });
 
 app.post('/pengguna', async (req, res) => {
@@ -62,6 +95,15 @@ app.get('/wisata', (req, res) => {
     const sql = 'SELECT * FROM wisata';
     db.query(sql, (err, results) => {
         if (err) return res.status(500).json({ error: err });
+        res.json(results);
+    });
+});
+
+app.get('/wisata/:id_wisata', (req, res) => {
+    const { id_wisata } = req.params;
+    const sql = 'SELECT * FROM wisata WHERE id_wisata = ?';
+    db.query(sql, [id_wisata], (err, results) => {
+        if (err) return res.status(500).json({ error: err});
         res.json(results);
     });
 });
