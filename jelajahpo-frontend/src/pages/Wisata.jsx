@@ -27,7 +27,10 @@ export default function Wisata() {
             try {
                 const res = await fetch(`http://localhost:5000/wisata/${id}`, {
                     method: "DELETE",
-                });
+                    headers: {
+                        Authorization: `Bearer ${localStorage.getItem("token")}`,
+                    },
+                    });
                 if (res.ok) {
                     alert("Wisata berhasil dihapus");
                     getWisata(); //ambil ulang data terbaru
@@ -54,7 +57,7 @@ export default function Wisata() {
             <div className="d-flex justify-content-between align-items-center mb-3">
                 <h2>Daftar Wisata JelajahPo </h2>
                 <Link to="/wisata/tambah" className="btn btn-primary">
-                + Tambah Wisata
+                    + Tambah Wisata
                 </Link>
             </div>
 
@@ -80,18 +83,17 @@ export default function Wisata() {
                                     <button
                                         className="btn btn-warning btn-sm me-2"
                                         onClick={() => handleEdit(item.id_wisata)}
-                                        >
-                                            Edit
+                                    >
+                                        Edit
                                     </button>
-                                    <td>
-                                    <button
-                                        className="btn btn-danger btn-sm"
-                                        onClick={() => handleDelete(item.id_wisata)}
+                                
+                                        <button
+                                            className="btn btn-danger btn-sm"
+                                            onClick={() => handleDelete(item.id_wisata)}
                                         >
                                             Delete
-                                    </button>
+                                        </button>
                                     </td>
-                                </td>
                             </tr>
                         ))
                     ) : (
@@ -103,6 +105,6 @@ export default function Wisata() {
                     )}
                 </tbody>
             </table>
-            </div>
+        </div>
     );
 }

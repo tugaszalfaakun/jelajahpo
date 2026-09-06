@@ -14,13 +14,13 @@ export default function EditWisata() {
     const [kategori, setKategori] = useState([]);
 
     useEffect(() => {
-    fetch("http://localhost:5000/kategori")
-        .then((res) => res.json())
-        .then((data) => {
-            setKategori(data);
-        })
-        .catch((err) => console.error(err));
-}, []);
+        fetch("http://localhost:5000/kategori")
+            .then((res) => res.json())
+            .then((data) => {
+                setKategori(data);
+            })
+            .catch((err) => console.error(err));
+    }, []);
 
     useEffect(() => {
         fetch(`http://localhost:5000/wisata/${id}`)
@@ -30,93 +30,96 @@ export default function EditWisata() {
                 setLoading(false);
             })
             .catch((err) => console.error(err));
-        }, [id]);
+    }, [id]);
 
-const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-};
+    const handleChange = (e) => {
+        setFormData({ ...formData, [e.target.name]: e.target.value });
+    };
 
-const handleSubmit = async (e) => {
-    e.preventDefault();
+    const handleSubmit = async (e) => {
+        e.preventDefault();
 
-    if (!window.confirm("Yakin mau menyimpan perubahan ini?")) {
+        if (!window.confirm("Yakin mau menyimpan perubahan ini?")) {
             return;
         }
-        
-    await fetch(`http://localhost:5000/wisata/${id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
-    });
-    alert("Wisata berhasil diperbarui");
-    navigate("/wisata");
-};
 
-if (loading) {
-    return <div className="container mt-4">Loading...</div>;
-}
+        await fetch(`http://localhost:5000/wisata/${id}`, {
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${localStorage.getItem("token")}`,
+            },
+            body: JSON.stringify(formData),
+        });
+        alert("Wisata berhasil diperbarui");
+        navigate("/wisata");
+    };
 
-return (
-    <div className="container mt-4">
-        <h2>Edit Wisata</h2>
-        <form onSubmit={handleSubmit} className="mt-3">
-            <div className="mb-3">
-                <label className="form-label">Nama Wisata</label>
-                <input
-                    type="text"
-                    name="nama_wisata"
-                    value={formData.nama_wisata}
-                    onChange={handleChange}
-                    className="form-control"
-                />
-            </div>
+    if (loading) {
+        return <div className="container mt-4">Loading...</div>;
+    }
 
-            <div className="mb-3">
-                <label className="form-label">Deskripsi</label>
-                <textarea
-                    name="deskripsi"
-                    value={formData.deskripsi}
-                    onChange={handleChange}
-                    className="form-control"
-                ></textarea>
-            </div>
+    return (
+        <div className="container mt-4">
+            <h2>Edit Wisata</h2>
+            <form onSubmit={handleSubmit} className="mt-3">
+                <div className="mb-3">
+                    <label className="form-label">Nama Wisata</label>
+                    <input
+                        type="text"
+                        name="nama_wisata"
+                        value={formData.nama_wisata}
+                        onChange={handleChange}
+                        className="form-control"
+                    />
+                </div>
 
-            <div className="mb-3">
-                <label className="form-label">Harga Tiket</label>
-                <input
-                    type="number"
-                    name="harga_tiket"
-                    value={formData.harga_tiket}
-                    onChange={handleChange}
-                    className="form-control"
-                    required
-                />
-            </div>
+                <div className="mb-3">
+                    <label className="form-label">Deskripsi</label>
+                    <textarea
+                        name="deskripsi"
+                        value={formData.deskripsi}
+                        onChange={handleChange}
+                        className="form-control"
+                    ></textarea>
+                </div>
 
-            <div className="mb-3">
-                <label className="form-label">Kategori</label>
+                <div className="mb-3">
+                    <label className="form-label">Harga Tiket</label>
+                    <input
+                        type="number"
+                        name="harga_tiket"
+                        value={formData.harga_tiket}
+                        onChange={handleChange}
+                        className="form-control"
+                        required
+                    />
+                </div>
 
-                <select
-                    name="id_kategori"
-                    value={formData.id_kategori}
-                    onChange={handleChange}
-                    className="form-select"
-                    required
-                >
-                    <option value="">-- Pilih Kategori --</option>
+                <div className="mb-3">
+                    <label className="form-label">Kategori</label>
 
-                    {kategori.map((item) => (
-                        <option key={item.id_kategori} value={item.id_kategori}>
-                            {item.kategori}
-                        </option>
-                    ))}
-                </select>
-            </div>
+                    <select
+                        name="id_kategori"
+                        value={formData.id_kategori}
+                        onChange={handleChange}
+                        className="form-select"
+                        required
+                    >
+                        <option value="">-- Pilih Kategori --</option>
 
-            <button type="submit" className="btn btn-success me-2">
-                Simpan Perubahan
-            </button>
-        </form>
-    </div>
-);
+                        {kategori.map((item) => (
+                            <option key={item.id_kategori} value={item.id_kategori}>
+                                {item.kategori}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+
+                <button type="submit" className="btn btn-success me-2">
+                    Simpan Perubahan
+                </button>
+            </form>
+        </div>
+    );
 }
