@@ -7,9 +7,24 @@ const bcrypt = require('bcrypt');
 const saltRounds = 10;
 const jwt = require('jsonwebtoken');
 const authJWT = require('./middleware');
+const path = require('path');
+const multer = require('multer');
 
+app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 app.use(cors());
 app.use(express.json());
+
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        cb(null, 'uploads/');
+    },
+    filename: (req, file, cb) => {
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() *
+            1e9);
+        cb(null, uniqueSuffix + '-' + file.originalname);
+    },
+});
+const upload = multer({ storage: storage });
 
 const db = mysql.createConnection({
     host: 'localhost',
@@ -34,17 +49,17 @@ app.post('/login', (req, res) => {
     const { email, password } = req.body;
     const sql = 'SELECT * FROM pengguna WHERE email = ?';
 
-    db.query(sql, [email], (err,result) => {
-        if (err) return res.status(500).json({ error: err.sqlMessage});
+    db.query(sql, [email], (err, result) => {
+        if (err) return res.status(500).json({ error: err.sqlMessage });
         if (result.length === 0) {
-            return res.status(404).json({ message: 'Akun tidak ditemukan'});
+            return res.status(404).json({ message: 'Akun tidak ditemukan' });
         }
 
         const user = result[0];
         const passwordIsValid = bcrypt.compareSync(password, user.password);
 
         if (!passwordIsValid) {
-            return res.status(401).json({ message: 'Password salah'});
+            return res.status(401).json({ message: 'Password salah' });
         }
 
         const token = jwt.sign(
@@ -104,13 +119,14 @@ app.get('/wisata/:id_wisata', (req, res) => {
     const { id_wisata } = req.params;
     const sql = 'SELECT * FROM wisata WHERE id_wisata = ?';
     db.query(sql, [id_wisata], (err, results) => {
-        if (err) return res.status(500).json({ error: err});
+        if (err) return res.status(500).json({ error: err });
         res.json(results);
     });
 });
 
-app.post('/wisata', (req, res) => {
+app.post('/wisata', upload.single('file'), (req, res) => {
     const { nama_wisata, deskripsi, harga_tiket, id_kategori } = req.body;
+    const nama_file = req.file ? req.file.filename : null;
 
     if (!nama_wisata || !harga_tiket) {
         return res.status(400).json({ message: 'Nama wisata dan harga_tiket wajib di isi' });
@@ -122,8 +138,8 @@ app.post('/wisata', (req, res) => {
         });
     }
 
-    const sql = 'INSERT INTO wisata (nama_wisata, deskripsi, harga_tiket, id_kategori, tgl_input) VALUES (?, ?, ?, ?, NOW())';
-    db.query(sql, [nama_wisata, deskripsi, harga_tiket, id_kategori], (err,
+    const sql = 'INSERT INTO wisata (nama_wisata, deskripsi, harga_tiket, id_kategori, nama_file, tgl_input) VALUES (?, ?, ?, ?, ?, NOW())';
+    db.query(sql, [nama_wisata, deskripsi, harga_tiket, id_kategori, nama_file], (err,
         result) => {
         if (err) return res.status(500).json({ error: err.sqlMessage });
         res.json({
@@ -133,7 +149,7 @@ app.post('/wisata', (req, res) => {
     });
 });
 
-app.put('/wisata/:id_wisata', authJWT, (req, res) => {
+app.put('/wisata/:id_wisata', authJWT, upload.single('file'), (req, res) => {
     const { id_wisata } = req.params;
     const { nama_wisata, deskripsi, harga_tiket, id_kategori } = req.body;
 
@@ -143,11 +159,48 @@ app.put('/wisata/:id_wisata', authJWT, (req, res) => {
         });
     }
 
-    const sql = 'UPDATE wisata SET nama_wisata=?, deskripsi=?,harga_tiket=?, id_kategori=? WHERE id_wisata=?';
-    db.query(sql, [nama_wisata, deskripsi, harga_tiket, id_kategori, id_wisata], (err, result) => {
-        if (err) return res.status(500).json({ error: err.sqlMessage });
-        if (result.affectedRows === 0) return res.status(404).json({ message: 'Wisata tidak ditemukan' });
-        res.json({ message: 'Wisata berhasil diupdate' });
+    const cekSql = 'SELECT * FROM wisata WHERE id_wisata = ?';
+
+    db.query(cekSql, [id_wisata], (err, results) => {
+        if (err) {
+            return res.status(500).json({
+                error: err.sqlMessage
+            });
+        }
+
+        if (results.length === 0) {
+            return res.status(404).json({
+                message: 'Wisata tidak ditemukan'
+            });
+        }
+
+        const nama_file = req.file ? req.file.filename : results[0].nama_file;
+
+        const sql = ` UPDATE wisata  SET nama_wisata = ?,deskripsi = ?,  harga_tiket = ?,   id_kategori = ?, nama_file = ? WHERE id_wisata = ? `;
+
+        db.query(
+            sql,
+            [
+                nama_wisata,
+                deskripsi,
+                harga_tiket,
+                id_kategori,
+                nama_file,
+                id_wisata
+            ],
+            (err, result) => {
+                if (err) {
+                    return res.status(500).json({
+                        error: err.sqlMessage
+                    });
+                }
+
+                res.json({
+                    message: 'Wisata berhasil diupdate',
+                    nama_file: nama_file
+                });
+            }
+        );
     });
 });
 
